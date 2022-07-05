@@ -1,0 +1,17 @@
+{
+    "name": "locust",
+    "build": {
+        "dockerfile": "Dockerfile",
+    },
+    "extensions": [
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "davidanson.vscode-markdownlint",
+        "foxundermoon.shell-format",
+        "bungcip.better-toml",
+        "ms-python.python",
+        "sourcery.sourcery"
+    ],
+    "postCreateCommand": "pre-commit install && poetry install",
+    "remoteUser": "vscode"
+}
