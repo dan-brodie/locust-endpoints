@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 from locust import events, HttpUser, task
 from google.cloud import secretmanager
-import google.auth.crypt, google.auth.jwt
-import json, time, logging
+import google.auth.crypt
+import google.auth.jwt
+import json
+import time
+import logging
 
 project_id = "db-dns-01"
 sa_name = "sample-sa@db-dns-01.iam.gserviceaccount.com"
-secret_id = "sample-sa"
+secret_id = "sample-sa"  # nosec
 target_url = "https://sample-l6wc7ausiq-ew.a.run.app"
 version_id = "1"
+
 
 def access_secret_version(project_id, secret_id, version_id):
     """
@@ -18,10 +22,8 @@ def access_secret_version(project_id, secret_id, version_id):
     client = secretmanager.SecretManagerServiceClient()
     name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
     response = client.access_secret_version(name=name)
-    sa_raw = response.payload.data.decode('UTF-8')
-    sa = json.loads(sa_raw)
-
-    return sa
+    sa_raw = response.payload.data.decode("UTF-8")
+    return json.loads(sa_raw)
 
 
 def generate_jwt(sa, sa_name, target_url):
@@ -44,9 +46,8 @@ def generate_jwt(sa, sa_name, target_url):
     }
 
     signer = google.auth.crypt.RSASigner.from_service_account_info(sa)
-    jwt = google.auth.jwt.encode(signer, payload)
-    
-    return jwt
+    return google.auth.jwt.encode(signer, payload)
+
 
 class EndpointTest(HttpUser):
     """
@@ -55,6 +56,7 @@ class EndpointTest(HttpUser):
     - we are hitting a particular endpoint.
     - we can add multiple tasks here
     """
+
     def on_start(self):
         self.sa = access_secret_version(project_id, secret_id, version_id)
         self.jwt = generate_jwt(self.sa, sa_name, target_url)
@@ -62,15 +64,16 @@ class EndpointTest(HttpUser):
     @task
     def device_type(self):
         headers = {
-            "Authorization": "Bearer {}".format(self.jwt.decode("utf-8")),
+            "Authorization": f'Bearer {self.jwt.decode("utf-8")}',
             "content-type": "application/json",
         }
+
         self.client.get("/hello", headers=headers, verify=False)
 
     @events.quitting.add_listener
-    def _(environment, **kw):
+    def _(environment, **kw):  # sourcery skip: instance-method-first-arg-name
         """
-        On quit determine exit code based on test results. 
+        On quit determine exit code based on test results.
         useful in CI.
         """
         if environment.stats.total.fail_ratio > 0.01:
